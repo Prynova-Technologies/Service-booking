@@ -4,10 +4,12 @@
   "description": "Backend for Rashad Service Booking Application",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "tsc --project tsconfig.json",
+    "start": "node index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "lint": "eslint . --ext .ts",
+    "test": "jest",
+    "postinstall": "npm run build",
+    "lint": "eslint --ext .ts src",
     "generate-vapid-keys": "node scripts/generate-vapid-keys.js"
   },
   "dependencies": {
