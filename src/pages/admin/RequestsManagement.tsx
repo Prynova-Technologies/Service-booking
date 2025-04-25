@@ -8,6 +8,11 @@ const RequestsManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // State for request modals
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
@@ -15,6 +20,8 @@ const RequestsManagement: React.FC = () => {
   // Load requests on component mount
   useEffect(() => {
     fetchRequests();
+    // Reset to first page when filter changes
+    setCurrentPage(1);
   }, [statusFilter]);
 
   // Fetch requests from the service
@@ -125,7 +132,10 @@ const RequestsManagement: React.FC = () => {
                 No booking requests found.
               </li>
             ) : (
-              requests.map((request) => (
+              // Apply pagination to the requests array
+              requests
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map((request) => (
                 <li key={request.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -205,6 +215,97 @@ const RequestsManagement: React.FC = () => {
               ))
             )}
           </ul>
+          
+          {/* Pagination Controls */}
+          {requests.length > 0 && (
+            <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(requests.length / itemsPerPage)))}
+                  disabled={currentPage >= Math.ceil(requests.length / itemsPerPage)}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, requests.length)}</span> to{' '}
+                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, requests.length)}</span> of{' '}
+                    <span className="font-medium">{requests.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Previous</span>
+                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    
+                    {/* Page numbers */}
+                    {Array.from({ length: Math.min(5, Math.ceil(requests.length / itemsPerPage)) }, (_, i) => {
+                      // Calculate page number to display (handle case when current page is near the end)
+                      const totalPages = Math.ceil(requests.length / itemsPerPage);
+                      let pageNum;
+                      
+                      if (totalPages <= 5) {
+                        // If 5 or fewer pages, show all page numbers
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        // If near the start, show first 5 pages
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        // If near the end, show last 5 pages
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        // Otherwise show current page and 2 pages on each side
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === pageNum
+                              ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(requests.length / itemsPerPage)))}
+                      disabled={currentPage >= Math.ceil(requests.length / itemsPerPage)}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Next</span>
+                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
