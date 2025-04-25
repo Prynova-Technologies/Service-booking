@@ -49,7 +49,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'https://service-booking-97bw.onrender.com/api/',
   credentials: true
 }));
 app.use(express.json());
