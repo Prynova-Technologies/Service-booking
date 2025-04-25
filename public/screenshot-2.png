@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="1334" viewBox="0 0 750 1334">
+  <rect width="750" height="1334" fill="#f8f9fa"/>
+  <rect x="50" y="100" width="650" height="1134" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="50" y="100" width="650" height="80" rx="4" fill="#4F46E5"/>
+  <text x="100" y="150" font-family="Arial" font-size="24" font-weight="bold" fill="#ffffff">BluePort Engineering</text>
+  <rect x="75" y="200" width="600" height="200" rx="4" fill="#f1f5f9"/>
+  <text x="100" y="250" font-family="Arial" font-size="18" fill="#1e293b">Book services like auto repairs,</text>
+  <text x="100" y="280" font-family="Arial" font-size="18" fill="#1e293b">generator repairs, and cleaning</text>
+  <rect x="75" y="420" width="600" height="150" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="100" y="490" font-family="Arial" font-size="20" fill="#1e293b">Auto Repairs</text>
+  <rect x="75" y="590" width="600" height="150" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="100" y="660" font-family="Arial" font-size="20" fill="#1e293b">Generator Repairs</text>
+  <rect x="75" y="760" width="600" height="150" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="100" y="830" font-family="Arial" font-size="20" fill="#1e293b">Cleaning Services</text>
+  <rect x="75" y="930" width="600" height="60" rx="4" fill="#4F46E5"/>
+  <text x="300" y="970" font-family="Arial" font-size="20" font-weight="bold" fill="#ffffff">Book Now</text>
+</svg>

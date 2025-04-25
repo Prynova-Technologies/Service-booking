@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Wrench -->
+  <path d="M35,15 C30,15 25,17 22,20 L42,40 C42,40 40,45 35,45 C30,45 25,40 25,40 L5,60 C8,63 13,65 18,65 C29,65 38,56 38,45 C38,42 37,39 36,37 L56,17 C54,16 51,15 48,15 C44,15 40,16 37,18 L35,15 Z" fill="#4F46E5" />
+  
+  <!-- Screwdriver -->
+  <path d="M80,20 L60,40 L55,35 L75,15 C72,12 65,12 60,17 L40,37 L63,60 L83,40 C88,35 88,28 85,25 L80,20 Z" fill="#4F46E5" />
+  
+  <!-- Screwdriver handle -->
+  <rect x="35" y="42" width="25" height="5" transform="rotate(-45 35 42)" fill="#4F46E5" />
+  
+  <!-- Screwdriver tip -->
+  <polygon points="37,62 33,58 30,61 34,65" fill="#4F46E5" />
+</svg>

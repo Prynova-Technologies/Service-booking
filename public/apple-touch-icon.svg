@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <rect width="180" height="180" fill="#4F46E5" rx="45" ry="45"/>
+  <g transform="translate(35, 35) scale(0.55)" fill="white" stroke="white" stroke-width="2">
+    <!-- Wrench -->
+    <path d="M30,110 L70,70 A20,20 0 1,1 100,100 L60,140 L30,110 Z" fill="white"/>
+    <circle cx="90" cy="80" r="10" fill="#4F46E5"/>
+    
+    <!-- Screwdriver -->
+    <path d="M160,30 L120,70 L100,50 L140,10 L160,30 Z" fill="white"/>
+    <rect x="95" y="75" width="30" height="70" rx="5" ry="5" transform="rotate(-45, 110, 110)" fill="white"/>
+  </g>
+</svg>

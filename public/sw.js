@@ -8,8 +8,10 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/logo.svg',
   '/pwa-192x192.png',
-  '/pwa-512x512.png'
+  '/pwa-512x512.png',
+  '/apple-touch-icon.png'
 ];
 
 // Socket.io connection status
@@ -50,7 +52,7 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: data.body,
-    icon: '/pwa-192x192.png',
+    icon: '/logo.svg',
     badge: '/pwa-192x192.png',
     data: data.relatedId ? { relatedId: data.relatedId, type: data.type } : (data.url ? { url: data.url } : {}),
     actions: [
