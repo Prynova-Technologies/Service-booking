@@ -14,6 +14,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotificationPermission from './components/NotificationPermission';
+import InstallPWA from './components/InstallPWA';
 import { registerServiceWorker } from './serviceWorkerRegistration';
 
 // HeaderWrapper component to conditionally render the header
@@ -83,6 +84,9 @@ const AppContent = () => {
       
       {/* Notification permission prompt */}
       <NotificationPermission />
+      
+      {/* Install PWA button */}
+      <InstallPWA />
     </div>
   );
 };
