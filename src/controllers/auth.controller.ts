@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
+import logger from '../utils/logger';
 
 // Generate JWT token
 const generateToken = (id: string): string => {
@@ -21,6 +22,9 @@ export const register = async (req: Request, res: Response) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      // Log registration failure
+      logger.warn('Registration failed - user already exists', { email });
+      
       return res.status(400).json({
         success: false,
         message: 'User already exists, please login instead',
@@ -38,6 +42,13 @@ export const register = async (req: Request, res: Response) => {
 
     // Generate token
     const token = generateToken(user._id);
+    
+    // Log successful registration
+    logger.info('User registered successfully', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip
+    });
 
     res.status(201).json({
       success: true,
@@ -51,6 +62,9 @@ export const register = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    // Log registration error
+    logger.error('Registration error', { error: error.message, stack: error.stack });
+    
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -70,6 +84,12 @@ export const login = async (req: Request, res: Response) => {
 
     // Check if email and password are provided
     if (!email || !password) {
+      // Log login attempt with missing credentials
+      logger.warn('Login failed - missing credentials', { 
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Please provide email and password',
@@ -79,6 +99,13 @@ export const login = async (req: Request, res: Response) => {
     // Check if user exists
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      // Log failed login attempt - user not found
+      logger.warn('Login failed - user not found', { 
+        email,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -88,6 +115,14 @@ export const login = async (req: Request, res: Response) => {
     // Check if password matches
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      // Log failed login attempt - invalid password
+      logger.warn('Login failed - invalid password', { 
+        userId: user._id,
+        email,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -96,6 +131,15 @@ export const login = async (req: Request, res: Response) => {
 
     // Generate token
     const token = generateToken(user._id);
+    
+    // Log successful login
+    logger.info('User logged in successfully', {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     res.status(200).json({
       success: true,
@@ -108,6 +152,9 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    // Log login error
+    logger.error('Login error', { error: error.message, stack: error.stack });
+    
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -127,6 +174,12 @@ export const adminLogin = async (req: Request, res: Response) => {
 
     // Check if email and password are provided
     if (!email || !password) {
+      // Log admin login attempt with missing credentials
+      logger.warn('Admin login failed - missing credentials', { 
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Please provide email and password',
@@ -136,6 +189,13 @@ export const adminLogin = async (req: Request, res: Response) => {
     // Check if user exists and is an admin
     const user = await User.findOne({ email, role: 'admin' }).select('+password');
     if (!user) {
+      // Log failed admin login attempt - user not found or not admin
+      logger.warn('Admin login failed - invalid credentials or not admin', { 
+        email,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials or not an admin',
@@ -145,6 +205,14 @@ export const adminLogin = async (req: Request, res: Response) => {
     // Check if password matches
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      // Log failed admin login attempt - invalid password
+      logger.warn('Admin login failed - invalid password', { 
+        userId: user._id,
+        email,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -153,6 +221,14 @@ export const adminLogin = async (req: Request, res: Response) => {
 
     // Generate token
     const token = generateToken(user._id);
+    
+    // Log successful admin login
+    logger.info('Admin logged in successfully', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     res.status(200).json({
       success: true,
@@ -165,6 +241,9 @@ export const adminLogin = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    // Log admin login error
+    logger.error('Admin login error', { error: error.message, stack: error.stack });
+    
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -181,6 +260,12 @@ export const adminLogin = async (req: Request, res: Response) => {
 export const getMe = async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.user._id);
+    
+    // Log user profile access
+    logger.info('User profile accessed', {
+      userId: req.user._id,
+      ip: req.ip
+    });
 
     res.status(200).json({
       success: true,
@@ -192,6 +277,13 @@ export const getMe = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    // Log error
+    logger.error('Error fetching user profile', { 
+      userId: req.user?._id,
+      error: error.message, 
+      stack: error.stack 
+    });
+    
     res.status(500).json({
       success: false,
       message: 'Server Error',

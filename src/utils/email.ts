@@ -21,6 +21,10 @@ interface EmailData {
   to: string;
   subject: string;
   html: string;
+  attachments?: {
+    filename: string;
+    path: string;
+  }[];
 }
 
 /**
@@ -58,7 +62,8 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
       from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM || 'noreply@example.com'}>`,
       to: emailData.to,
       subject: emailData.subject,
-      html: emailData.html
+      html: emailData.html,
+      attachments: emailData.attachments || []
     });
 
     logger.info('Email sent successfully', { to: emailData.to, subject: emailData.subject });
@@ -220,6 +225,7 @@ const generateStatusUpdateEmailTemplate = (
 ): string => {
   let statusMessage = '';
   let statusColor = '';
+  let additionalContent = '';
   
   switch (status) {
     case 'confirmed':
@@ -229,6 +235,12 @@ const generateStatusUpdateEmailTemplate = (
     case 'completed':
       statusMessage = 'Your service has been completed. Thank you for choosing our services!';
       statusColor = '#2563eb'; // blue
+      additionalContent = `
+        <div style="background-color: #dbeafe; border: 1px solid #93c5fd; padding: 15px; margin: 15px 0; border-radius: 5px;">
+          <p style="margin-top: 0;"><strong>📎 Receipt Attached</strong></p>
+          <p style="margin-bottom: 0;">We've attached an official receipt to this email for your records. Please save it for your tax and warranty purposes.</p>
+        </div>
+      `;
       break;
     case 'cancelled':
       statusMessage = 'Your booking has been cancelled. If you did not request this cancellation, please contact us.';
@@ -247,6 +259,7 @@ const generateStatusUpdateEmailTemplate = (
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
         <p>Hello ${userName},</p>
         <p>${statusMessage}</p>
+        ${additionalContent}
         <div style="background-color: #f9fafb; padding: 15px; margin: 15px 0; border-radius: 5px;">
           <p><strong>Booking ID:</strong> ${booking._id}</p>
           <p><strong>Service:</strong> ${serviceName}</p>
@@ -273,13 +286,15 @@ const generateStatusUpdateEmailTemplate = (
  * @param userEmail The email of the user who made the booking
  * @param serviceName The name of the service booked
  * @param status The new status of the booking
+ * @param receiptPath Optional path to receipt PDF to attach
  */
 export const sendBookingStatusUpdateToCustomer = async (
   booking: IBooking,
   userName: string,
   userEmail: string,
   serviceName: string,
-  status: string
+  status: string,
+  receiptPath?: string
 ): Promise<boolean> => {
   if (!userEmail) {
     logger.error('Customer email not available');
@@ -293,6 +308,22 @@ export const sendBookingStatusUpdateToCustomer = async (
     subject: `Booking ${statusCapitalized}: ${serviceName}`,
     html: generateStatusUpdateEmailTemplate(booking, userName, serviceName, status)
   };
+
+  // Attach receipt PDF if provided and status is completed
+  if (receiptPath && status === 'completed') {
+    emailData.attachments = [
+      {
+        filename: `${serviceName.replace(/\s+/g, '_')}_Receipt_${new Date().toISOString().split('T')[0]}.pdf`,
+        path: receiptPath
+      }
+    ];
+    
+    logger.info('Attaching receipt PDF to email', { 
+      bookingId: booking._id,
+      receiptPath: receiptPath,
+      userEmail: userEmail
+    });
+  }
 
   return sendEmail(emailData);
 };

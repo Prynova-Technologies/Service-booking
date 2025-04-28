@@ -14,8 +14,10 @@ import { applyLoggerMiddleware, logApiRequest } from './middleware/logger.middle
 import authRoutes from './routes/auth.routes';
 import serviceRoutes from './routes/service.routes';
 import bookingRoutes from './routes/booking.routes';
+import settingsRoutes from './routes/settings.routes';
 import userRoutes from './routes/user.routes';
 import notificationRoutes from './routes/notification.routes';
+import receiptRoutes from './routes/receipt.routes';
 
 // Import socket handler
 import { setupSocketHandlers } from './socket/socketHandlers';
@@ -30,8 +32,21 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Remove trailing slash if present
+      const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+      const allowedOrigin = process.env.FRONTEND_URL || 'https://blueporteng.netlify.app';
+      
+      if (normalizedOrigin === allowedOrigin || origin === allowedOrigin) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true
   }
 });
@@ -49,7 +64,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://service-booking-97bw.onrender.com/api/',
+  origin: process.env.FRONTEND_URL || 'https://service-booking-97bw.onrender.com',
   credentials: true
 }));
 app.use(express.json());
@@ -62,8 +77,10 @@ app.use(logApiRequest);
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/receipts', receiptRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

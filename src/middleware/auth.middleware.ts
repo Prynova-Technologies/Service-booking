@@ -82,3 +82,24 @@ export const restrictTo = (role: 'admin' | 'user') => {
     next();
   };
 };
+
+/**
+ * Middleware to restrict routes to admin users only
+ * This is a convenience wrapper around restrictTo('admin')
+ */
+export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+  // First ensure the user is authenticated
+  protect(req, res, (err) => {
+    if (err) return next(err);
+    
+    // Then check if the user is an admin
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required',
+      });
+    }
+    
+    next();
+  });
+};

@@ -6,6 +6,8 @@ import { io } from '../index';
 import { sendPushNotification } from '../services/notification.service';
 import logger from '../utils/logger';
 import { sendBookingNotificationToAdmin, sendBookingConfirmationToCustomer, sendBookingStatusUpdateToCustomer, sendEmail } from '../utils/email';
+// Import the PDF utility
+const { generateReceiptPDF, cleanupReceiptPDF } = require('../utils/pdf')
 
 /**
  * Get all bookings for the current user
@@ -181,6 +183,24 @@ export const createBooking = async (req: Request, res: Response) => {
       });
     }
 
+    // Check if the date falls within any off-duty period
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0); // Remove time part for comparison
+    
+    const OffDutyPeriod = mongoose.model('OffDutyPeriod');
+    const offDutyPeriods = await OffDutyPeriod.find({
+      startDate: { $lte: selectedDate },
+      endDate: { $gte: selectedDate }
+    });
+    
+    if (offDutyPeriods.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'The selected date is unavailable for booking',
+        offDutyPeriod: offDutyPeriods[0]
+      });
+    }
+
     // Get service details to access the price
     const service = await Service.findById(serviceId);
     if (!service) {
@@ -259,7 +279,7 @@ export const createBooking = async (req: Request, res: Response) => {
  */
 export const updateBookingStatus = async (req: Request, res: Response) => {
   try {
-    const { status } = req.body;
+    const { status, cancellationReason, servicePersonnelName } = req.body;
 
     // Validate status
     if (!status || !['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
@@ -280,13 +300,51 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
         message: 'Booking not found',
       });
     }
+    
+    // If status is being set to cancelled, require a cancellation reason
+    if (status === 'cancelled' && !cancellationReason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a cancellation reason',
+      });
+    }
 
     // Update status
     booking.status = status as BookingStatus;
     
+    // If status is being set to cancelled, set the cancellation reason
+    if (status === 'cancelled' && cancellationReason) {
+      booking.cancellationReason = cancellationReason;
+    }
+    
     // If status is being set to completed, allow setting the completed price
     if (status === 'completed' && req.body.completedPrice) {
       booking.completedPrice = parseFloat(req.body.completedPrice);
+      
+      // If service personnel name is provided, generate a receipt
+      if (servicePersonnelName) {
+        try {
+          const Receipt = mongoose.model('Receipt');
+          const receipt = await Receipt.create({
+            booking: booking._id,
+            finalPrice: booking.completedPrice,
+            servicePersonnelName: servicePersonnelName,
+            completionDate: new Date(),
+          });
+          
+          // Update booking with receipt ID
+          booking.receiptId = receipt._id;
+          
+          logger.info('Receipt generated successfully', { 
+            receiptId: receipt._id, 
+            bookingId: booking._id,
+            finalPrice: booking.completedPrice
+          });
+        } catch (receiptError: any) {
+          logger.error('Failed to generate receipt:', { error: receiptError.message, stack: receiptError.stack });
+          // Continue even if receipt generation fails
+        }
+      }
     }
     
     await booking.save();
@@ -295,16 +353,24 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
     io.to(`user:${booking.user._id}`).emit('notification', {
       type: 'booking_status',
       title: 'Booking Update',
-      message: `Your booking for ${booking.service.name} has been ${status}`,
+      message: `Your booking for ${booking.service.name} has been ${status}${status === 'cancelled' && cancellationReason ? `: ${cancellationReason}` : ''}`,
       relatedId: booking._id.toString(),
       timestamp: Date.now(),
+    });
+    
+    // Send booking status changed notification with cancellation reason if applicable
+    io.to(`user:${booking.user._id}`).emit('booking_status_changed', {
+      bookingId: booking._id.toString(),
+      serviceName: booking.service.name,
+      status: booking.status,
+      cancellationReason: booking.cancellationReason
     });
 
     // Send push notification
     try {
       await sendPushNotification(booking.user._id.toString(), {
         title: 'Booking Update',
-        body: `Your booking for ${booking.service.name} has been ${status}`,
+        body: `Your booking for ${booking.service.name} has been ${status}${status === 'cancelled' && cancellationReason ? `: ${cancellationReason}` : ''}`,
         data: {
           type: 'booking_status',
           bookingId: booking._id.toString(),
@@ -317,13 +383,109 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
     
     // Send email notification about status update
     try {
-      await sendBookingStatusUpdateToCustomer(
-        booking,
-        booking.user.name,
-        booking.user.email,
-        booking.service.name,
-        status
-      );
+      // If status is completed and receipt was generated, attach the receipt to the email
+      if (status === 'completed' && booking.receiptId) {
+        try {
+          // Get the receipt details
+          const Receipt = mongoose.model('Receipt');
+          const receipt = await Receipt.findById(booking.receiptId);
+          
+          if (receipt) {
+            logger.info('Found receipt for completed booking', { 
+              receiptId: receipt._id, 
+              bookingId: booking._id 
+            });
+            
+            try {
+              // Generate the receipt PDF
+              const receiptPdfPath = await generateReceiptPDF(receipt, booking);
+              logger.info('Generated receipt PDF successfully', { 
+                receiptId: receipt._id, 
+                bookingId: booking._id,
+                pdfPath: receiptPdfPath
+              });
+              
+              // Send email with receipt attachment
+              const emailSent = await sendBookingStatusUpdateToCustomer(
+                booking,
+                booking.user.name,
+                booking.user.email,
+                booking.service.name,
+                status,
+                receiptPdfPath
+              );
+              
+              if (emailSent) {
+                logger.info('Sent status update email with receipt attachment', { 
+                  receiptId: receipt._id, 
+                  bookingId: booking._id,
+                  userEmail: booking.user.email
+                });
+              } else {
+                logger.warn('Failed to send status update email with receipt attachment', { 
+                  receiptId: receipt._id, 
+                  bookingId: booking._id,
+                  userEmail: booking.user.email
+                });
+              }
+              
+              // Clean up the temporary PDF file
+              cleanupReceiptPDF(receiptPdfPath);
+            } catch (pdfError: any) {
+              logger.error('Error generating or sending receipt PDF', { 
+                error: pdfError.message, 
+                stack: pdfError.stack,
+                receiptId: receipt._id,
+                bookingId: booking._id
+              });
+              
+              // If PDF generation fails, send email without attachment
+              await sendBookingStatusUpdateToCustomer(
+                booking,
+                booking.user.name,
+                booking.user.email,
+                booking.service.name,
+                status
+              );
+            }
+          } else {
+            logger.warn('Receipt not found for completed booking', { bookingId: booking._id, receiptId: booking.receiptId });
+            // If receipt not found, send email without attachment
+            await sendBookingStatusUpdateToCustomer(
+              booking,
+              booking.user.name,
+              booking.user.email,
+              booking.service.name,
+              status
+            );
+          }
+        } catch (receiptError: any) {
+          logger.error('Error retrieving receipt for completed booking', { 
+            error: receiptError.message, 
+            stack: receiptError.stack,
+            bookingId: booking._id,
+            receiptId: booking.receiptId
+          });
+          
+          // If receipt retrieval fails, send email without attachment
+          await sendBookingStatusUpdateToCustomer(
+            booking,
+            booking.user.name,
+            booking.user.email,
+            booking.service.name,
+            status
+          );
+        }
+      } else {
+        // For other statuses, send email without attachment
+        await sendBookingStatusUpdateToCustomer(
+          booking,
+          booking.user.name,
+          booking.user.email,
+          booking.service.name,
+          status
+        );
+      }
     } catch (emailError) {
       logger.error('Failed to send status update email:', { error: emailError.message });
       // Continue even if email notification fails
@@ -352,6 +514,16 @@ export const updateBookingStatus = async (req: Request, res: Response) => {
  */
 export const cancelBooking = async (req: Request, res: Response) => {
   try {
+    const { cancellationReason } = req.body;
+    
+    // Validate cancellation reason
+    if (!cancellationReason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a cancellation reason',
+      });
+    }
+    
     // Find booking
     const booking = await Booking.findById(req.params.id)
       .populate('service', 'name')
@@ -380,8 +552,9 @@ export const cancelBooking = async (req: Request, res: Response) => {
       });
     }
 
-    // Update status to cancelled
+    // Update status to cancelled and set cancellation reason
     booking.status = 'cancelled';
+    booking.cancellationReason = cancellationReason;
     await booking.save();
 
     // If user is admin, notify the customer

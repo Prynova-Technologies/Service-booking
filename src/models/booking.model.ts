@@ -12,6 +12,8 @@ export interface IBooking extends Document {
   completedPrice?: number;
   address?: string;
   notes?: string;
+  cancellationReason?: string;
+  receiptId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +55,13 @@ const bookingSchema = new Schema<IBooking>(
     },
     notes: {
       type: String,
+    },
+    cancellationReason: {
+      type: String,
+    },
+    receiptId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Receipt',
     },
   },
   {
