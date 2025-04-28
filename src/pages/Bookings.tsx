@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import bookingService, { Booking } from '../services/bookingService';
 import authService from '../services/authService';
+import CancellationModal from '../components/CancellationModal';
 
 // Using the Booking interface from bookingService
 
@@ -9,6 +10,8 @@ const Bookings: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -125,26 +128,30 @@ const Bookings: React.FC = () => {
                       <Link to={`/bookings/${booking._id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">View</Link>
                       {booking.status === 'pending' && (
                         <button 
-                          onClick={() => {
-                            if(window.confirm('Are you sure you want to cancel this booking?')) {
-                              bookingService.cancelBooking(booking._id)
-                                .then(() => {
-                                  // Update the booking status in the UI
-                                  setBookings(prevBookings => 
-                                    prevBookings.map(b => 
-                                      b._id === booking._id ? {...b, status: 'cancelled'} : b
-                                    )
-                                  );
-                                })
-                                .catch(err => {
-                                  console.error('Failed to cancel booking:', err);
-                                  alert('Failed to cancel booking. Please try again.');
-                                });
-                            }
-                          }} 
+                        onClick={() => {
+                          if (booking._id) {
+                            setLoading(true);
+                            bookingService.cancelBooking(booking._id, "cancelled by client")
+                              .then(() => {
+                                // Update the booking status in the UI
+                                setBookings(prevBookings => 
+                                  prevBookings.map(b => 
+                                    b._id === booking._id ? {...b, status: 'cancelled', cancellationReason: "cancelled by client"} : b
+                                  )
+                                );
+                                setLoading(false);
+                              })
+                              .catch(err => {
+                                console.error('Failed to cancel booking:', err);
+                                alert('Failed to cancel booking. Please try again.');
+                                setLoading(false);
+                              });
+                          }
+                        }} 
+                          disabled={loading ? true : false}
                           className="text-red-600 hover:text-red-900 cursor-pointer"
                         >
-                          Cancel
+                          {loading ? 'please wait...' : 'Cancel'}
                         </button>
                       )}
                     </td>
@@ -175,28 +182,32 @@ const Bookings: React.FC = () => {
                 <div className="flex justify-end space-x-3 mt-3 pt-3 border-t border-gray-200">
                   <Link to={`/bookings/${booking._id}`} className="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View</Link>
                   {booking.status === 'pending' && (
-                    <button 
-                      onClick={() => {
-                        if(window.confirm('Are you sure you want to cancel this booking?')) {
-                          bookingService.cancelBooking(booking._id)
-                            .then(() => {
-                              // Update the booking status in the UI
-                              setBookings(prevBookings => 
-                                prevBookings.map(b => 
-                                  b._id === booking._id ? {...b, status: 'cancelled'} : b
-                                )
-                              );
-                            })
-                            .catch(err => {
-                              console.error('Failed to cancel booking:', err);
-                              alert('Failed to cancel booking. Please try again.');
-                            });
-                        }
-                      }} 
-                      className="text-red-600 hover:text-red-900 text-sm font-medium cursor-pointer"
-                    >
-                      Cancel
-                    </button>
+                   <button 
+                   onClick={() => {
+                     if (booking._id) {
+                       setLoading(true);
+                       bookingService.cancelBooking(booking._id, "cancelled by client")
+                         .then(() => {
+                           // Update the booking status in the UI
+                           setBookings(prevBookings => 
+                             prevBookings.map(b => 
+                               b._id === booking._id ? {...b, status: 'cancelled', cancellationReason: "cancelled by client"} : b
+                             )
+                           );
+                           setLoading(false);
+                         })
+                         .catch(err => {
+                           console.error('Failed to cancel booking:', err);
+                           alert('Failed to cancel booking. Please try again.');
+                           setLoading(false);
+                         });
+                     }
+                   }} 
+                     disabled={loading ? true : false}
+                     className="text-red-600 hover:text-red-900 cursor-pointer"
+                   >
+                     {loading ? 'please wait...' : 'Cancel'}
+                   </button>
                   )}
                 </div>
               </div>
@@ -204,6 +215,32 @@ const Bookings: React.FC = () => {
           </div>
         </>
       )}
+      
+      {/* Cancellation Modal */}
+      <CancellationModal
+        isOpen={isCancellationModalOpen}
+        onClose={() => setIsCancellationModalOpen(false)}
+        onConfirm={(reason) => {
+          if (selectedBookingId) {
+            bookingService.cancelBooking(selectedBookingId, reason)
+              .then(() => {
+                // Update the booking status in the UI
+                setBookings(prevBookings => 
+                  prevBookings.map(b => 
+                    b._id === selectedBookingId ? {...b, status: 'cancelled', cancellationReason: reason} : b
+                  )
+                );
+                setIsCancellationModalOpen(false);
+                setSelectedBookingId(null);
+              })
+              .catch(err => {
+                console.error('Failed to cancel booking:', err);
+                alert('Failed to cancel booking. Please try again.');
+              });
+          }
+        }}
+        title="Cancel Booking"
+      />
     </div>
   );
 };

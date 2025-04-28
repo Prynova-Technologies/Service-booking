@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import requestService, { ServiceRequest } from '../../services/requestService';
+import CancellationModal from '../../components/CancellationModal';
+import CompletionModal from '../../components/CompletionModal';
 
 const RequestsManagement: React.FC = () => {
   // State for requests list and loading status
@@ -15,6 +17,8 @@ const RequestsManagement: React.FC = () => {
 
   // State for request modals
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
 
   // Load requests on component mount
@@ -41,10 +45,17 @@ const RequestsManagement: React.FC = () => {
   };
 
   // Handle updating a request status
-  const handleUpdateStatus = async (requestId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
+  const handleUpdateStatus = async (requestId: string, newStatus: 'confirmed' | 'completed' | 'cancelled', cancellationReason?: string, completedPrice?: number, servicePersonnelName?: string) => {
     setIsLoading(true);
     try {
-      await requestService.updateRequestStatus(requestId, newStatus);
+      if (newStatus === 'cancelled' && cancellationReason) {
+        await requestService.updateRequestStatus(requestId, newStatus, cancellationReason);
+      } else if (newStatus === 'completed') {
+        // For completed status, we need the completed price and service personnel name
+        await requestService.updateRequestStatus(requestId, newStatus, undefined, completedPrice, servicePersonnelName);
+      } else {
+        await requestService.updateRequestStatus(requestId, newStatus);
+      }
       // Refresh request list
       await fetchRequests();
     } catch (err) {
@@ -52,6 +63,46 @@ const RequestsManagement: React.FC = () => {
       console.error('Error updating request status:', err);
     } finally {
       setIsLoading(false);
+      setIsCancellationModalOpen(false);
+      setIsCompletionModalOpen(false);
+    }
+  };
+  
+  // Handle cancellation with reason
+  const handleCancellation = (requestId: string) => {
+    if (!requestId) return;
+    
+    // Find the request to be cancelled
+    const requestToCancel = requests.find(req => req._id === requestId);
+    if (requestToCancel) {
+      setSelectedRequest(requestToCancel);
+      setIsCancellationModalOpen(true);
+    }
+  };
+  
+  // Handle completion with final price and service personnel name
+  const handleCompletion = (requestId: string) => {
+    if (!requestId) return;
+    
+    // Find the request to be completed
+    const requestToComplete = requests.find(req => req._id === requestId);
+    if (requestToComplete) {
+      setSelectedRequest(requestToComplete);
+      setIsCompletionModalOpen(true);
+    }
+  };
+  
+  // Confirm completion with final price and service personnel name
+  const confirmCompletion = (completedPrice: number, servicePersonnelName: string) => {
+    if (selectedRequest) {
+      handleUpdateStatus(selectedRequest._id, 'completed', undefined, completedPrice, servicePersonnelName);
+    }
+  };
+  
+  // Confirm cancellation with reason
+  const confirmCancellation = (reason: string) => {
+    if (selectedRequest) {
+      handleUpdateStatus(selectedRequest._id, 'cancelled', reason);
     }
   };
 
@@ -194,7 +245,7 @@ const RequestsManagement: React.FC = () => {
                             Confirm
                           </button>
                           <button
-                            onClick={() => handleUpdateStatus(request._id, 'cancelled')}
+                            onClick={() => handleCancellation(request._id)}
                             className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                           >
                             Cancel
@@ -203,7 +254,7 @@ const RequestsManagement: React.FC = () => {
                       )}
                       {request.status === 'confirmed' && (
                         <button
-                          onClick={() => handleUpdateStatus(request._id, 'completed')}
+                          onClick={() => handleCompletion(request._id)}
                           className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                           Complete
@@ -309,6 +360,23 @@ const RequestsManagement: React.FC = () => {
         </div>
       )}
 
+      {/* Cancellation Modal */}
+      <CancellationModal
+        isOpen={isCancellationModalOpen}
+        onClose={() => setIsCancellationModalOpen(false)}
+        onConfirm={confirmCancellation}
+        title="Cancel Booking Request"
+      />
+      
+      {/* Completion Modal */}
+      <CompletionModal
+        isOpen={isCompletionModalOpen}
+        onClose={() => setIsCompletionModalOpen(false)}
+        onConfirm={confirmCompletion}
+        title="Complete Booking"
+        initialPrice={selectedRequest?.startingPrice || 0}
+      />
+      
       {/* View Request Modal */}
       {isViewModalOpen && selectedRequest && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
@@ -363,6 +431,12 @@ const RequestsManagement: React.FC = () => {
                         <div className="sm:col-span-2">
                           <dt className="text-sm font-medium text-gray-500">Address</dt>
                           <dd className="mt-1 text-sm text-gray-900">{selectedRequest.address}</dd>
+                        </div>
+                      )}
+                      {selectedRequest.status === 'cancelled' && selectedRequest.cancellationReason && (
+                        <div className="sm:col-span-2">
+                          <dt className="text-sm font-medium text-gray-500">Cancellation Reason</dt>
+                          <dd className="mt-1 text-sm text-gray-900 p-2 bg-red-50 rounded-md">{selectedRequest.cancellationReason}</dd>
                         </div>
                       )}
                       {selectedRequest.notes && (

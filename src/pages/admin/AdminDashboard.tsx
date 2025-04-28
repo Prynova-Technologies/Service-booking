@@ -5,9 +5,11 @@ import UsersManagement from './UsersManagement';
 import ServicesManagement from './ServicesManagement';
 import RequestsManagement from './RequestsManagement';
 import CustomersManagement from './CustomersManagement';
+import SettingsManagement from './SettingsManagement';
+import ReceiptsManagement from './ReceiptsManagement';
 
 
-type TabType = 'services' | 'requests' | 'customers' | 'users';
+type TabType = 'services' | 'requests' | 'customers' | 'users' | 'settings' | 'receipts';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('services');
@@ -87,6 +89,18 @@ const AdminDashboard: React.FC = () => {
             >
               Users
             </button>
+            <button
+              className={`${activeTab === 'receipts' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              onClick={() => handleTabChange('receipts')}
+            >
+              Receipts
+            </button>
+            <button
+              className={`${activeTab === 'settings' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              onClick={() => handleTabChange('settings')}
+            >
+              Settings
+            </button>
           </nav>
         </div>
 
@@ -105,6 +119,10 @@ const AdminDashboard: React.FC = () => {
               {activeTab === 'customers' && <CustomersManagement />}
 
               {activeTab === 'users' && <UsersManagement />}
+
+              {activeTab === 'receipts' && <ReceiptsManagement />}
+
+              {activeTab === 'settings' && <SettingsManagement />}
             </>
           )}
         </div>

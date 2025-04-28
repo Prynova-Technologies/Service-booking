@@ -625,14 +625,56 @@ class NotificationService {
     }
   }
 
-  // Create a notification for booking status change
-  notifyBookingStatusChange(bookingId: string, serviceName: string, newStatus: string): Notification {
-    return this.addNotification({
-      title: `Booking Status Updated`,
-      message: `Your booking for ${serviceName} is now ${newStatus}`,
-      type: 'booking_status',
-      relatedId: bookingId
-    });
+  /**
+   * Notify user about booking status change
+   * @param bookingId Booking ID
+   * @param serviceName Service name
+   * @param status New status
+   * @param cancellationReason Optional reason for cancellation
+   */
+  async notifyBookingStatusChange(bookingId: string, serviceName: string, status: string, cancellationReason?: string): Promise<void> {
+    try {
+      // Create notification message based on status
+      let title = 'Booking Update';
+      let message = `Your booking for ${serviceName} has been `;
+      
+      switch (status) {
+        case 'confirmed':
+          message += 'confirmed.';
+          break;
+        case 'completed':
+          message += 'marked as completed.';
+          break;
+        case 'cancelled':
+          message += 'cancelled.';
+          // Add cancellation reason if provided
+          if (cancellationReason) {
+            message += ` Reason: ${cancellationReason}`;
+          }
+          break;
+        default:
+          message += `updated to ${status}.`;
+      }
+      
+      // Add notification to local state
+      const notification: Notification = {
+        id: Math.random().toString(36).substring(2, 15),
+        title,
+        message,
+        timestamp: Date.now(),
+        read: false,
+        type: 'booking_status',
+        relatedId: bookingId
+      };
+      
+      this.addNotification(notification);
+      
+      // Send to server for email notification
+      await this.sendEmailNotification(bookingId, title, message);
+      
+    } catch (error) {
+      console.error('Failed to send booking status notification:', error);
+    }
   }
   
   // Send a notification to the service worker

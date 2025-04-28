@@ -24,8 +24,16 @@ export interface Booking {
   completedPrice?: number;
   address?: string;
   notes?: string;
+  cancellationReason?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// Define the OffDutyPeriod interface
+export interface OffDutyPeriod {
+  startDate: string;
+  endDate: string;
+  reason: string;
 }
 
 import { getApiUrl } from '../config/env';
@@ -116,12 +124,17 @@ class BookingService {
   /**
    * Cancel a booking
    * @param id Booking ID to cancel
+   * @param cancellationReason Optional reason for cancellation
    * @returns Promise with updated booking
    */
-  async cancelBooking(id: string): Promise<Booking> {
+  async cancelBooking(id: string, cancellationReason?: string): Promise<Booking> {
     try {
       const response = await fetchWithAuth(this.getFullApiUrl(`${this.apiUrl}/${id}/cancel`), {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cancellationReason }),
       });
       
       if (!response.ok) {
@@ -174,6 +187,48 @@ class BookingService {
       return data.data;
     } catch (error) {
       console.error(`Error fetching bookings for customer ${customerId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get receipt for a booking
+   * @param bookingId Booking ID to get receipt for
+   * @returns Promise with receipt details
+   */
+  async getReceipt(bookingId: string): Promise<any> {
+    try {
+      const response = await fetchWithAuth(this.getFullApiUrl(`/api/receipts/booking/${bookingId}`));
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error fetching receipt: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error(`Error fetching receipt for booking ID ${bookingId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all off-duty periods
+   * @returns Promise with array of off-duty periods
+   */
+  async getOffDutyPeriods(): Promise<OffDutyPeriod[]> {
+    try {
+      const response = await fetchWithAuth(this.getFullApiUrl('/api/settings/off-duty'));
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching off-duty periods: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching off-duty periods:', error);
       throw error;
     }
   }

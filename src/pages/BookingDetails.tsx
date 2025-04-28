@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import notificationService from '../services/notificationService';
 import bookingService, { Booking } from '../services/bookingService';
 import authService from '../services/authService';
+import CancellationModal from '../components/CancellationModal';
+import ReceiptModal from '../components/ReceiptModal';
 
 // Using the Booking interface from bookingService
 
@@ -13,6 +15,9 @@ const BookingDetails: React.FC = () => {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receipt, setReceipt] = useState<any>(null);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -49,7 +54,7 @@ const BookingDetails: React.FC = () => {
   };
   
   // Function to update booking status
-  const updateBookingStatus = async (newStatus: Booking['status'], completedPrice?: number) => {
+  const updateBookingStatus = async (newStatus: Booking['status'], completedPrice?: number, cancellationReason?: string) => {
     if (!booking) return;
     
     try {
@@ -58,8 +63,8 @@ const BookingDetails: React.FC = () => {
       let updatedBooking;
       
       if (newStatus === 'cancelled') {
-        // Use the cancelBooking method from the service
-        updatedBooking = await bookingService.cancelBooking(booking._id);
+        // Use the cancelBooking method from the service with cancellation reason
+        updatedBooking = await bookingService.cancelBooking(booking._id, cancellationReason);
       } else {
         // For other status updates, we would need additional API methods
         // This is a placeholder for future implementation
@@ -81,7 +86,8 @@ const BookingDetails: React.FC = () => {
       notificationService.notifyBookingStatusChange(
         updatedBooking._id,
         updatedBooking.service.name,
-        newStatus
+        newStatus,
+        cancellationReason
       );
       
     } catch (err) {
@@ -89,7 +95,18 @@ const BookingDetails: React.FC = () => {
       setError('Failed to update booking status. Please try again later.');
     } finally {
       setLoading(false);
+      setIsCancellationModalOpen(false);
     }
+  };
+  
+  // Handle opening the cancellation modal
+  const handleCancellation = () => {
+    setIsCancellationModalOpen(true);
+  };
+  
+  // Handle confirming cancellation with reason
+  const confirmCancellation = (reason: string) => {
+    updateBookingStatus('cancelled', undefined, reason);
   };
   
   // State for completed price input
@@ -168,13 +185,42 @@ const BookingDetails: React.FC = () => {
               <span className="text-gray-600">Time</span>
               <span className="text-gray-900 font-medium">{booking.time}</span>
             </div>
+            {booking.status === 'cancelled' && booking.cancellationReason && (
+              <div className="mt-4 p-4 bg-red-50 rounded-md">
+                <h3 className="text-lg font-medium text-red-800">Cancellation Reason</h3>
+                <p className="mt-2 text-red-700">
+                  {booking.cancellationReason}
+                </p>
+              </div>
+            )}
+            
+            {booking.status === 'completed' && booking.receiptId && (
+              <div className="mt-4 p-4 bg-green-50 rounded-md">
+                <h3 className="text-lg font-medium text-green-800">Receipt Information</h3>
+                <button 
+                  onClick={async () => {
+                    try {
+                      const receiptData = await bookingService.getReceipt(booking._id);
+                      setReceipt(receiptData);
+                      setIsReceiptModalOpen(true);
+                    } catch (err) {
+                      console.error('Failed to fetch receipt:', err);
+                      alert('Failed to fetch receipt information. Please try again later.');
+                    }
+                  }}
+                  className="mt-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  View Receipt
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             {booking.status === 'pending' && (
               <div className="space-y-3">
                 <button
-                  onClick={() => updateBookingStatus('cancelled')}
+                  onClick={handleCancellation}
                   className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Cancel Booking
@@ -185,7 +231,7 @@ const BookingDetails: React.FC = () => {
             {booking.status === 'confirmed' && (
               <div className="space-y-3">
                 <button
-                  onClick={() => updateBookingStatus('cancelled')}
+                  onClick={handleCancellation}
                   className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Cancel Booking
@@ -197,6 +243,24 @@ const BookingDetails: React.FC = () => {
           </>
         ) : null}
       </div>
+      
+      {/* Cancellation Modal */}
+      <CancellationModal
+        isOpen={isCancellationModalOpen}
+        onClose={() => setIsCancellationModalOpen(false)}
+        onConfirm={confirmCancellation}
+        title="Cancel Booking"
+      />
+      
+      {/* Receipt Modal */}
+      {booking && (
+        <ReceiptModal
+          isOpen={isReceiptModalOpen}
+          onClose={() => setIsReceiptModalOpen(false)}
+          receipt={receipt}
+          serviceName={booking.service.name}
+        />
+      )}
     </div>
   );
 };

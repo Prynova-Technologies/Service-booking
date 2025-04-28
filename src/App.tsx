@@ -16,6 +16,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import NotificationPermission from './components/NotificationPermission';
 import InstallPWA from './components/InstallPWA';
 import { registerServiceWorker } from './serviceWorkerRegistration';
+import { AuthProvider } from './contexts/AuthContext';
 
 // HeaderWrapper component to conditionally render the header
 const HeaderWrapper = () => {
@@ -94,7 +95,9 @@ const AppContent = () => {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </Router>
   );
 }

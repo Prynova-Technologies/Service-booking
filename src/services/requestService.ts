@@ -24,6 +24,7 @@ export interface ServiceRequest {
   completedPrice?: number;
   address?: string;
   notes?: string;
+  cancellationReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -104,16 +105,28 @@ class RequestService {
    * Update a service request status
    * @param id Request ID
    * @param status New status
+   * @param cancellationReason Optional reason for cancellation (for cancelled status)
    * @param completedPrice Optional completed price (for completed status)
+   * @param servicePersonnelName Optional service personnel name (for completed status)
    * @returns Promise with updated request
    */
-  async updateRequestStatus(id: string, status: ServiceRequest['status'], completedPrice?: number): Promise<ServiceRequest> {
+  async updateRequestStatus(id: string, status: ServiceRequest['status'], cancellationReason?: string, completedPrice?: number, servicePersonnelName?: string): Promise<ServiceRequest> {
     try {
-      const updateData: { status: string; completedPrice?: number } = { status };
+      const updateData: { status: string; completedPrice?: number; cancellationReason?: string; servicePersonnelName?: string } = { status };
       
       // If status is completed and completedPrice is provided, include it
       if (status === 'completed' && completedPrice) {
         updateData.completedPrice = completedPrice;
+      }
+      
+      // If status is completed and servicePersonnelName is provided, include it
+      if (status === 'completed' && servicePersonnelName) {
+        updateData.servicePersonnelName = servicePersonnelName;
+      }
+      
+      // If status is cancelled and cancellationReason is provided, include it
+      if (status === 'cancelled' && cancellationReason) {
+        updateData.cancellationReason = cancellationReason;
       }
       
       const response = await fetchWithAuth(this.getFullApiUrl(`${this.API_URL}/${id}/status`), {

@@ -104,13 +104,14 @@ class SocketService {
     
     // Handle booking notifications
     this.socket.on('booking_status_changed', (data) => {
-      const { bookingId, serviceName, status } = data;
+      const { bookingId, serviceName, status, cancellationReason } = data;
       
       // Create a notification using the notification service
       notificationService.notifyBookingStatusChange(
         bookingId,
         serviceName,
-        status
+        status,
+        cancellationReason
       );
     });
     

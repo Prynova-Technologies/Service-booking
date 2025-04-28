@@ -61,7 +61,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, showFullDetails = tr
         )}
         <div className="flex justify-between items-center">
           {showFullDetails && service.price && (
-            <span className="text-indigo-600 font-medium text-sm sm:text-base">Starting Price: ${service.price.replace(/^₦/, '')}</span>
+            <span className="text-indigo-600 font-medium text-sm sm:text-base">Starting Price: {service.price.replace(/^₦/, '')}</span>
           )}
           {!hideBookButton && (
             <button 
