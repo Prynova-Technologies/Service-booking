@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo-icon.png', 'logo-big.png', 'pwa-192x192.svg', 'pwa-512x512.svg', 'apple-touch-icon.svg', 'screenshot-1.png', 'screenshot-2.png', 'login-illustration.svg', 'register-illustration.svg'],
       manifest: {
         name: 'BluePort Engineering',
         short_name: 'BluePort',
@@ -19,9 +19,9 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'logo.svg',
+            src: 'logo-icon.png',
             sizes: 'any',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any'
           },
           {

@@ -38,7 +38,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="bg-indigo-700 text-white p-4 flex justify-between items-center sticky top-0 z-10">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+      <img src="/logo-big.png" alt="BluePort Engineering" className="h-8 w-auto mr-2" />
         <button 
           onClick={handleLogout}
           className="px-4 py-2 bg-indigo-800 hover:bg-indigo-900 rounded-md text-sm font-medium"

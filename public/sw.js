@@ -8,7 +8,8 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/logo.svg',
+  '/logo-icon.png',
+  '/logo-big.png',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
   '/apple-touch-icon.png'
@@ -52,7 +53,7 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: data.body,
-    icon: '/logo.svg',
+    icon: '/logo-icon.png',
     badge: '/pwa-192x192.png',
     data: data.relatedId ? { relatedId: data.relatedId, type: data.type } : (data.url ? { url: data.url } : {}),
     actions: [

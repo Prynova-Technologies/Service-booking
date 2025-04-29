@@ -62,7 +62,7 @@ const Home: React.FC = () => {
       <div className="sm:hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-xl font-bold">BluePort Engineering</h1>
+          <img src="/logo-big.png" alt="BluePort Engineering" className="h-8 w-auto mr-2" />
             <div className="flex items-center">
               <div className="mr-2">
                 <NotificationCenter 

@@ -43,8 +43,8 @@ const Header = () => {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="text-xl font-bold text-indigo-600">
-                BluePort Engineering
+              <Link to="/" className="flex items-center">
+                <img src="/logo-big.png" alt="BluePort Engineering" className="h-8 w-auto mr-2" />
               </Link>
             </div>
           </div>
