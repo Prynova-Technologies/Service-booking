@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
 import UsersManagement from './UsersManagement';
@@ -16,6 +16,7 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const navRef = useRef<HTMLDivElement>(null);
 
   // Check if user is authenticated as admin
   useEffect(() => {
@@ -23,6 +24,39 @@ const AdminDashboard: React.FC = () => {
       navigate('/admin/login');
     }
   }, [navigate]);
+
+  // Handle scroll shadows for tab navigation
+  useEffect(() => {
+    const navElement = navRef.current?.querySelector('nav');
+    const leftShadow = document.getElementById('left-shadow');
+    const rightShadow = document.getElementById('right-shadow');
+    
+    if (!navElement || !leftShadow || !rightShadow) return;
+    
+    const handleScroll = () => {
+      // Show left shadow if scrolled to the right
+      if (navElement.scrollLeft > 10) {
+        leftShadow.style.opacity = '1';
+      } else {
+        leftShadow.style.opacity = '0';
+      }
+      
+      // Show right shadow if not scrolled all the way to the end
+      const isAtEnd = navElement.scrollWidth - navElement.scrollLeft <= navElement.clientWidth + 10;
+      rightShadow.style.opacity = isAtEnd ? '0' : '1';
+    };
+    
+    // Initial check
+    handleScroll();
+    
+    // Add scroll event listener
+    navElement.addEventListener('scroll', handleScroll);
+    
+    // Clean up
+    return () => {
+      navElement.removeEventListener('scroll', handleScroll);
+    };
+  }, [activeTab]); // Re-run when active tab changes
 
   // Handle tab change
   const handleTabChange = (tab: TabType) => {
@@ -63,45 +97,55 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        <div className="border-b border-gray-200 mb-4 sticky top-16 bg-white z-5">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              className={`${activeTab === 'services' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              onClick={() => handleTabChange('services')}
-            >
-              Services
-            </button>
-            <button
-              className={`${activeTab === 'requests' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              onClick={() => handleTabChange('requests')}
-            >
-              Requests
-            </button>
-            <button
-              className={`${activeTab === 'customers' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              onClick={() => handleTabChange('customers')}
-            >
-              Customers
-            </button>
-            <button
-              className={`${activeTab === 'users' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              onClick={() => handleTabChange('users')}
-            >
-              Users
-            </button>
-            <button
-              className={`${activeTab === 'receipts' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              onClick={() => handleTabChange('receipts')}
-            >
-              Receipts
-            </button>
-            <button
-              className={`${activeTab === 'settings' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              onClick={() => handleTabChange('settings')}
-            >
-              Settings
-            </button>
-          </nav>
+        <div className="border-b border-gray-200 mb-4 sticky top-16 bg-white z-5 overflow-hidden">
+          {/* Scrollable tabs container with visual indicators */}
+          <div className="relative" ref={navRef}>
+            {/* Left shadow indicator when scrolled */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none opacity-0 transition-opacity duration-300" id="left-shadow"></div>
+            
+            {/* Right shadow indicator */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none opacity-100 transition-opacity duration-300" id="right-shadow"></div>
+            
+            {/* Scrollable navigation */}
+            <nav className="-mb-px flex space-x-8 overflow-x-auto scrollbar-hide py-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <button
+                className={`${activeTab === 'services' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex-shrink-0`}
+                onClick={() => handleTabChange('services')}
+              >
+                Services
+              </button>
+              <button
+                className={`${activeTab === 'requests' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex-shrink-0`}
+                onClick={() => handleTabChange('requests')}
+              >
+                Requests
+              </button>
+              <button
+                className={`${activeTab === 'customers' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex-shrink-0`}
+                onClick={() => handleTabChange('customers')}
+              >
+                Customers
+              </button>
+              <button
+                className={`${activeTab === 'users' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex-shrink-0`}
+                onClick={() => handleTabChange('users')}
+              >
+                Users
+              </button>
+              <button
+                className={`${activeTab === 'receipts' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex-shrink-0`}
+                onClick={() => handleTabChange('receipts')}
+              >
+                Receipts
+              </button>
+              <button
+                className={`${activeTab === 'settings' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex-shrink-0`}
+                onClick={() => handleTabChange('settings')}
+              >
+                Settings
+              </button>
+            </nav>
+          </div>
         </div>
 
         <div className="transition-opacity duration-300 ease-in-out">
