@@ -82,10 +82,13 @@ class AuthService {
       
       const data = await response.json();
 
+      // Check if user has admin role
+      const isAdminUser = data.user.role === 'admin';
+      
       // Save user to state and localStorage
       this.currentUser = data.user;
-      this.isAdmin = false;
-      this.saveUserToStorage(data.user);
+      this.isAdmin = isAdminUser;
+      this.saveUserToStorage(data.user, isAdminUser);
       this.saveTokenToStorage(data.token);
 
       // Connect to socket service when user logs in

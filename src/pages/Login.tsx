@@ -12,7 +12,12 @@ const Login: React.FC = () => {
   // Check if already logged in
   useEffect(() => {
     if (authService.isAuthenticated()) {
-      navigate('/bookings');
+      // Check if user is admin and redirect accordingly
+      if (authService.isAdminUser()) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/bookings');
+      }
     }
   }, [navigate]);
 
@@ -24,7 +29,13 @@ const Login: React.FC = () => {
     try {
       // Call the login API
       await authService.login({ email, password });
-      navigate('/bookings');
+      
+      // Check if user is admin and redirect accordingly
+      if (authService.isAdminUser()) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/bookings');
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid credentials');
     } finally {
